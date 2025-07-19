@@ -1,0 +1,450 @@
+-- Bảng lưu trữ số cửa hàng qua các năm
+CREATE TABLE SoCuaHang (
+    Nam INT PRIMARY KEY,
+    SoLuong INT NOT NULL
+);
+
+-- Bảng báo cáo kết quả hoạt động kinh doanh
+CREATE TABLE BaoCaoKQHDKD (
+    ID SERIAL PRIMARY KEY,
+    Nam INT UNIQUE NOT NULL,
+    SoLuong NUMERIC,
+    GiaBan NUMERIC,
+    DoanhThu NUMERIC,
+    NVL_Percent_DT NUMERIC DEFAULT 0.25,
+    NVL NUMERIC,
+    ChiPhiKhauHao NUMERIC,
+    ChiPhiLuong NUMERIC,
+    TongChiPhi_GiaVon NUMERIC,
+    LoiNhuanGop_EBIT NUMERIC,
+    ChiPhiLaiVay NUMERIC,
+    LoiNhuanTruocThue_EBT NUMERIC,
+    ThueTNDN_Percent NUMERIC DEFAULT 0.33,
+    ThueTNDN NUMERIC,
+    LoiNhuanSauThue NUMERIC
+);
+
+-- Bảng khấu hao tài sản
+CREATE TABLE BangKhauHao (
+    ID SERIAL PRIMARY KEY,
+    TenMay TEXT NOT NULL,
+    NguyenGia NUMERIC NOT NULL,
+    SoNamSuDung INT NOT NULL,
+    NamBatDau INT NOT NULL
+);
+
+
+-- Bảng báo cáo lưu chuyển tiền tệ
+CREATE TABLE BaoCaoLuuChuyenTienTe (
+    ID SERIAL PRIMARY KEY,
+    Nam INT UNIQUE NOT NULL,
+    LoiNhuanSauThue NUMERIC,
+    KhauHao NUMERIC,
+    KhoanPhaiThu NUMERIC DEFAULT 0,
+    NVLDuTru NUMERIC DEFAULT 0,
+    KhoanPhaiTra_LC NUMERIC DEFAULT 0,
+    Net_CFO NUMERIC,
+    CFI_CAPEX NUMERIC,
+    Net_CFI NUMERIC,
+    Vay NUMERIC,
+    GopVon NUMERIC DEFAULT 0,
+    Net_CFF NUMERIC,
+    TienMatThayDoiTrongKy NUMERIC,
+    TienMatDauKy NUMERIC,
+    TienMatCuoiKy NUMERIC,
+    FCF NUMERIC,
+    ROA NUMERIC,
+    ROE NUMERIC
+);
+
+-- Bảng vay
+CREATE TABLE BangVay (
+    ID SERIAL PRIMARY KEY,
+    Nam INT UNIQUE NOT NULL,
+    TienMatCuoiKy_NamTruoc NUMERIC,
+    NhuCauChiTieu NUMERIC,
+    KhoanVay NUMERIC,
+    LaiSuat NUMERIC,
+    LaiVay NUMERIC,
+    Du NUMERIC
+);
+
+
+-- Bảng cân đối kế toán
+CREATE TABLE BangCanDoiKeToan (
+    ID SERIAL PRIMARY KEY,
+    Nam INT UNIQUE NOT NULL,
+    TienMat NUMERIC,
+    HangTonKho NUMERIC DEFAULT 0,
+    KhoanPhaiThu_CDKT NUMERIC DEFAULT 0,
+    NVL_CDKT NUMERIC DEFAULT 0,
+    TS_NganHan NUMERIC,
+    TS_VoHinh NUMERIC,
+    NguyenGia_TSHH NUMERIC,
+    KhauHaoLuyKe_TSHH NUMERIC,
+    TS_HuuHinh_GiaTriConLai NUMERIC,
+    TS_DaiHan NUMERIC,
+    TongTaiSan NUMERIC,
+    CoDongGopVon NUMERIC,
+    VonGopCSH NUMERIC,
+    LoiNhuanSauThue_CDKT NUMERIC,
+    VonCSH NUMERIC,
+    KhoanVayPhaiTra NUMERIC,
+    KhoanVayMuaNVL NUMERIC,
+    KhoanPhaiTra_CDKT_Final NUMERIC,
+    NoPhaiTra NUMERIC,
+    TongNguonVon NUMERIC
+);
+
+-- Bảng WACC
+CREATE TABLE WACC (
+    ID SERIAL PRIMARY KEY,
+    Nam INT UNIQUE NOT NULL,
+    re NUMERIC DEFAULT 0.15,
+    rD NUMERIC,
+    Tc NUMERIC DEFAULT 0.33, -- Thuế suất TNDN (1 - 0.67)
+    E NUMERIC,
+    D NUMERIC,
+    V NUMERIC,
+    WACC_Value NUMERIC
+);
+
+-- Dữ liệu số cửa hàng
+INSERT INTO SoCuaHang (Nam, SoLuong) VALUES
+(1, 1), (2, 2), (3, 3), (4, 4), (5, 7), (6, 7), (7, 7), (8, 7);
+
+-- Dữ liệu khấu hao
+INSERT INTO BangKhauHao (TenMay, NguyenGia, SoNamSuDung, NamBatDau) VALUES
+('Máy 1', 300, 5, 1),
+('Máy 2', 300, 5, 2),
+('Máy 3', 300, 5, 3),
+('Máy 4', 300, 5, 4),
+('Máy 5', 300, 5, 5),
+('Máy 6', 300, 5, 5),
+('Máy 7', 300, 5, 5);
+
+-- Khởi tạo 8 năm trong các bảng chính
+INSERT INTO BaoCaoKQHDKD (Nam) SELECT generate_series(1, 8);
+INSERT INTO BaoCaoLuuChuyenTienTe (Nam) SELECT generate_series(1, 8);
+INSERT INTO BangVay (Nam) SELECT generate_series(1, 8);
+INSERT INTO BangCanDoiKeToan (Nam) SELECT generate_series(0, 8);
+INSERT INTO WACC (Nam) SELECT generate_series(1, 8);
+
+
+-- Thiết lập các giá trị ban đầu cho Năm 0 trong Bảng Cân Đối Kế Toán
+UPDATE BangCanDoiKeToan
+SET
+    CoDongGopVon = 500,
+    VonGopCSH = 1000,
+    KhoanVayPhaiTra = 250,
+    TienMat = 0, -- Giả định tiền mặt ban đầu từ vốn góp và vay
+    TS_VoHinh = 1000
+WHERE Nam = 0;
+
+-- Cập nhật các giá trị cố định hoặc được điều chỉnh
+UPDATE BaoCaoLuuChuyenTienTe SET KhoanPhaiThu = -800 WHERE Nam = 7;
+UPDATE BaoCaoLuuChuyenTienTe SET KhoanPhaiThu = 800 WHERE Nam = 8;
+UPDATE BaoCaoLuuChuyenTienTe SET NVLDuTru = -2100 WHERE Nam = 6;
+UPDATE BaoCaoLuuChuyenTienTe SET NVLDuTru = 2100 WHERE Nam = 7;
+UPDATE BaoCaoLuuChuyenTienTe SET KhoanPhaiTra_LC = 1000 WHERE Nam = 8;
+
+UPDATE BaoCaoLuuChuyenTienTe SET CFI_CAPEX = -300 WHERE Nam IN (1, 2, 3, 4);
+UPDATE BaoCaoLuuChuyenTienTe SET CFI_CAPEX = -900 WHERE Nam = 5;
+
+UPDATE BangCanDoiKeToan SET HangTonKho = 2100 WHERE Nam = 6;
+UPDATE BangCanDoiKeToan SET KhoanPhaiThu_CDKT = 800 WHERE Nam = 7;
+UPDATE BangCanDoiKeToan SET KhoanVayMuaNVL = 3000 WHERE Nam IN (6, 7, 8);
+UPDATE BangCanDoiKeToan SET KhoanPhaiTra_CDKT_Final = 1000 WHERE Nam = 8;
+UPDATE BangCanDoiKeToan SET TS_VoHinh = 1000 WHERE Nam > 0;
+UPDATE bangcandoiketoan SET loinhuansauthue_cdkt = 0 Where Nam = 0 
+UPDATE BaoCaoLuuChuyenTienTe SET GopVon = 500 WHERE Nam = 1;
+UPDATE bangcandoiketoan SET TienMat = 0 Where Nam = 0;
+UPDATE bangcandoiketoan SET voncsh = 1500 where nam =0 
+update bangcandoiketoan set khoanvayphaitra = 0 where nam = 0
+
+-- Bước 1: Xóa trigger cũ để đảm bảo sạch sẽ
+DROP TRIGGER IF EXISTS trg_recalculate_after_bcdt_update ON BangCanDoiKeToan;
+
+-- Bước 2: Tạo lại trigger với điều kiện WHEN để kiểm tra biến cờ
+CREATE TRIGGER trg_recalculate_after_bcdt_update
+AFTER UPDATE ON BangCanDoiKeToan
+FOR EACH STATEMENT
+WHEN (current_setting('my_app.is_recalculating', true) IS DISTINCT FROM 'true')
+EXECUTE FUNCTION calculate_financials();
+
+-- Bước 3: Cập nhật hàm calculate_financials
+CREATE OR REPLACE FUNCTION calculate_financials()
+RETURNS TRIGGER AS $$
+DECLARE
+    current_year INT;
+    previous_year_cash NUMERIC;
+    v_codonggopvon NUMERIC;
+    v_vongopcsh NUMERIC;
+    v_ts_vohinh NUMERIC;
+    v_khoanvayphaitra_year0 NUMERIC;
+    total_loan_10_percent NUMERIC; -- Tổng khoản vay có lãi suất 10%
+    total_loan_12_percent NUMERIC; -- Tổng khoản vay có lãi suất 12%
+    total_loan NUMERIC; -- Tổng khoản vay lũy kế
+BEGIN
+    PERFORM set_config('my_app.is_recalculating', 'true', false);
+
+    -- Lấy các giá trị từ năm 0, bao gồm KhoanVayPhaiTra
+    SELECT CoDongGopVon, VonGopCSH, TS_VoHinh, KhoanVayPhaiTra
+    INTO v_codonggopvon, v_vongopcsh, v_ts_vohinh, v_khoanvayphaitra_year0
+    FROM BangCanDoiKeToan
+    WHERE Nam = 0;
+
+    -- Cập nhật VonCSH cho năm 0
+    UPDATE BangCanDoiKeToan
+    SET voncsh = v_codonggopvon + v_vongopcsh
+    WHERE Nam = 0;
+
+    FOR current_year IN 1..8 LOOP
+        -- Cập nhật các giá trị cố định từ năm 0
+        UPDATE BangCanDoiKeToan
+        SET
+            CoDongGopVon = v_codonggopvon,
+            VonGopCSH = v_vongopcsh,
+            TS_VoHinh = v_ts_vohinh
+        WHERE Nam = current_year;
+
+        -- Lấy tiền mặt của năm trước
+        SELECT tienmat INTO previous_year_cash
+        FROM BangCanDoiKeToan
+        WHERE nam = current_year - 1;
+
+        --======================================================================
+        -- TÍNH TOÁN BẢNG KHẤU HAO VÀ CÁC CHỈ SỐ LIÊN QUAN
+        --======================================================================
+        UPDATE BaoCaoKQHDKD 
+        SET chiphikhauhao = (SELECT COALESCE(SUM(nguyengia / sonamsudung), 0) 
+                            FROM BangKhauHao 
+                            WHERE current_year >= nambatdau AND current_year < nambatdau + sonamsudung) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET khauhao = (SELECT chiphikhauhao FROM BaoCaoKQHDKD WHERE nam = current_year) 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET 
+            nguyengia_tshh = (SELECT COALESCE(SUM(nguyengia), 0) 
+                             FROM BangKhauHao WHERE nambatdau <= current_year), 
+            khauhaoluyke_tshh = (SELECT COALESCE(SUM(LEAST(current_year - nambatdau + 1, sonamsudung) * (nguyengia / sonamsudung)), 0) 
+                                FROM BangKhauHao WHERE nambatdau <= current_year)
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET ts_huuhinh_giatriconlai = nguyengia_tshh - khauhaoluyke_tshh 
+        WHERE nam = current_year;
+
+        --======================================================================
+        -- TÍNH TOÁN BẢNG BÁO CÁO KQHĐKD
+        --======================================================================
+        UPDATE BaoCaoKQHDKD 
+        SET soluong = CASE 
+                        WHEN current_year = 1 THEN 800 
+                        ELSE (SELECT soluong FROM BaoCaoKQHDKD WHERE nam = current_year - 1) / 
+                             (SELECT soluong FROM SoCuaHang WHERE nam = current_year - 1) * 1.05 * 
+                             (SELECT soluong FROM SoCuaHang WHERE nam = current_year) 
+                      END,
+            giaban = CASE 
+                       WHEN current_year = 1 THEN 1 
+                       ELSE (SELECT giaban FROM BaoCaoKQHDKD WHERE nam = current_year - 1) + 0.05 
+                     END 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET doanhthu = soluong * giaban 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET nvl = doanhthu * nvl_percent_dt 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET chiphiluong = (SELECT soluong FROM SoCuaHang WHERE nam = current_year) * 530 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET tongchiphi_giavon = COALESCE(nvl, 0) + COALESCE(chiphikhauhao, 0) + COALESCE(chiphiluong, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET loinhuangop_ebit = COALESCE(doanhthu, 0) - COALESCE(tongchiphi_giavon, 0) 
+        WHERE nam = current_year;
+
+        --======================================================================
+        -- TÍNH TOÁN BẢNG VAY
+        --======================================================================
+        UPDATE BangVay 
+        SET nhucauchitieu = (SELECT nvl FROM BaoCaoKQHDKD WHERE nam = current_year) + 
+                            (SELECT chiphiluong FROM BaoCaoKQHDKD WHERE nam = current_year) + 
+                            COALESCE((SELECT -cfi_capex FROM BaoCaoLuuChuyenTienTe WHERE nam = current_year), 0) 
+        WHERE nam = current_year;
+
+        UPDATE BangVay 
+        SET khoanvay = CASE 
+                         WHEN current_year = 1 THEN v_khoanvayphaitra_year0
+                         ELSE GREATEST(0, COALESCE(nhucauchitieu, 0) - COALESCE(previous_year_cash, 0))
+                       END 
+        WHERE nam = current_year;
+
+        UPDATE BangVay 
+        SET laisuat = CASE 
+                        WHEN COALESCE(khoanvay, 0) = 0 THEN 0
+                        WHEN COALESCE(khoanvay, 0) < 3000 THEN 0.10 
+                        ELSE 0.12 
+                      END 
+        WHERE nam = current_year;
+
+        UPDATE BangVay 
+        SET laivay = COALESCE(khoanvay, 0) * COALESCE(laisuat, 0), 
+            du = GREATEST(0, COALESCE(previous_year_cash, 0) - COALESCE(nhucauchitieu, 0)) 
+        WHERE nam = current_year;
+
+        --======================================================================
+        -- CÁC PHẦN TÍNH TOÁN CÒN LẠI
+        --======================================================================
+        UPDATE BaoCaoKQHDKD 
+        SET chiphilaivay = (SELECT COALESCE(SUM(bv.laivay), 0) FROM BangVay bv WHERE bv.nam <= current_year) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET loinhuantruocthue_ebt = COALESCE(loinhuangop_ebit, 0) - COALESCE(chiphilaivay, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET thueTNDN = COALESCE(loinhuantruocthue_ebt, 0) * COALESCE(thueTNDN_percent, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoKQHDKD 
+        SET loinhuansauthue = COALESCE(loinhuantruocthue_ebt, 0) - COALESCE(thueTNDN, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET loinhuansauthue = (SELECT loinhuansauthue FROM BaoCaoKQHDKD WHERE nam = current_year) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET
+            net_cfo = COALESCE(loinhuansauthue, 0) + COALESCE(khauhao, 0) + COALESCE(khoanphaithu, 0) + COALESCE(nvldutru, 0) + COALESCE(khoanphaitra_lc, 0),
+            net_cfi = COALESCE(cfi_capex, 0),
+            vay = (SELECT khoanvay FROM BangVay WHERE nam = current_year)
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET net_cff = COALESCE(vay, 0) + COALESCE(gopvon, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET tienmatthaydoitrongky = COALESCE(net_cfo, 0) + COALESCE(net_cfi, 0) + COALESCE(net_cff, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET tienmatdauky = CASE 
+                             WHEN current_year = 1 THEN (SELECT tienmat FROM BangCanDoiKeToan WHERE nam = 0) 
+                             ELSE (SELECT tienmatcuoiky FROM BaoCaoLuuChuyenTienTe WHERE nam = current_year - 1) 
+                           END 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET tienmatcuoiky = COALESCE(tienmatdauky, 0) + COALESCE(tienmatthaydoitrongky, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BaoCaoLuuChuyenTienTe 
+        SET fcf = COALESCE(net_cfo, 0) + COALESCE(-net_cfi, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET tienmat = (SELECT tienmatcuoiky FROM BaoCaoLuuChuyenTienTe WHERE nam = current_year), 
+            loinhuansauthue_cdkt = (SELECT loinhuansauthue FROM BaoCaoKQHDKD WHERE nam = current_year) 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET ts_nganhan = COALESCE(tienmat, 0) + COALESCE(hangtonkho, 0) + COALESCE(khoanphaithu_cdkt, 0) + COALESCE(nvl_cdkt, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET ts_daihan = COALESCE(ts_huuhinh_giatriconlai, 0) + COALESCE(ts_vohinh, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET tongtaisan = COALESCE(ts_nganhan, 0) + COALESCE(ts_daihan, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET voncsh = CASE 
+                       WHEN current_year = 0 THEN v_codonggopvon + v_vongopcsh
+                       ELSE (SELECT voncsh FROM BangCanDoiKeToan WHERE nam = current_year - 1) + COALESCE(loinhuansauthue_cdkt, 0)
+                     END 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET khoanvayphaitra = CASE
+                                WHEN current_year = 1 THEN v_khoanvayphaitra_year0
+                                WHEN current_year < 6 THEN 
+                                    (SELECT khoanvayphaitra FROM BangCanDoiKeToan WHERE nam = current_year - 1) + 
+                                    (SELECT vay FROM BaoCaoLuuChuyenTienTe WHERE nam = current_year)
+                                ELSE 
+                                    (SELECT khoanvayphaitra FROM BangCanDoiKeToan WHERE nam = current_year - 1)
+                              END
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET nophaitra = COALESCE(khoanvayphaitra, 0) + COALESCE(khoanvaymuanvl, 0) + COALESCE(khoanphaitra_cdkt_final, 0) 
+        WHERE nam = current_year;
+
+        UPDATE BangCanDoiKeToan 
+        SET tongnguonvon = COALESCE(voncsh, 0) + COALESCE(nophaitra, 0) 
+        WHERE nam = current_year;
+
+        -- Tính tỷ lệ vay 10% và 12% dựa trên khoản vay lũy kế
+        SELECT COALESCE(SUM(CASE WHEN laisuat = 0.10 THEN khoanvay ELSE 0 END), 0)
+        INTO total_loan_10_percent
+        FROM BangVay
+        WHERE nam <= current_year;
+
+        SELECT COALESCE(SUM(CASE WHEN laisuat = 0.12 THEN khoanvay ELSE 0 END), 0)
+        INTO total_loan_12_percent
+        FROM BangVay
+        WHERE nam <= current_year;
+
+        SELECT COALESCE(khoanvayphaitra, 0)
+        INTO total_loan
+        FROM BangCanDoiKeToan
+        WHERE nam = current_year;
+
+        -- Cập nhật rd trong bảng WACC
+        UPDATE WACC 
+        SET rd = CASE
+                   WHEN total_loan = 0 THEN 0.11 -- Giá trị mặc định khi không có khoản vay
+                   ELSE (total_loan_10_percent / total_loan) * 0.10 + (total_loan_12_percent / total_loan) * 0.12
+                 END,
+            e = (SELECT voncsh FROM BangCanDoiKeToan WHERE nam = current_year), 
+            d = (SELECT nophaitra FROM BangCanDoiKeToan WHERE nam = current_year) 
+        WHERE nam = current_year;
+
+        UPDATE WACC 
+        SET v = COALESCE(e, 0) + COALESCE(d, 0) 
+        WHERE nam = current_year;
+
+        UPDATE WACC 
+        SET wacc_value = (e / v) * re + (d / v) * rd * (1 - tc) 
+        WHERE nam = current_year AND v > 0;
+
+        UPDATE BangVay 
+        SET TienMatCuoiKy = (SELECT TienMatCuoiKy FROM BaoCaoLuuChuyenTienTe WHERE Nam = current_year) 
+        WHERE Nam = current_year;
+    END LOOP;
+
+    PERFORM set_config('my_app.is_recalculating', 'false', false);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+UPDATE BangCanDoiKeToan SET ts_vohinh = 1000 WHERE nam = 0;
+UPDATE BangCanDoiKeToan SET codonggopvon = 1000 WHERE nam = 0;
+UPDATE BangCanDoiKeToan SET vongopcsh = 1000 WHERE nam = 0;
+
+
