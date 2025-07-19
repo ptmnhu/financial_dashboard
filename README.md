@@ -41,12 +41,30 @@ This repository contains a financial analysis and projection for a milk tea busi
 
 ## 👾 Features
 
-![User Interface Overview](./picture/Pic1.png)
-![Summary of Business Statistics](./picture/Pic2.png)
-![Detailed Business Performance Table](./picture/Pic3.png)
-![Random Data Generation Feature](./picture/Pic4.png)
-![Data Visualization Charts](./picture/Pic5.png)
+<p align="center">
+  <img src="./Pic1.png" alt="User Interface Overview" width="600"/><br>
+  <em>User Interface Overview</em>
+</p>
 
+<p align="center">
+  <img src="./Pic2.png" alt="Summary of Business Statistics" width="600"/><br>
+  <em>Summary of Business Statistics</em>
+</p>
+
+<p align="center">
+  <img src="./Pic3.png" alt="Detailed Business Performance Table" width="600"/><br>
+  <em>Detailed Business Performance Table</em>
+</p>
+
+<p align="center">
+  <img src="./Pic4.png" alt="Random Data Generation Feature" width="600"/><br>
+  <em>Random Data Generation Feature</em>
+</p>
+
+<p align="center">
+  <img src="./Pic5.png" alt="Data Visualization Charts" width="600"/><br>
+  <em>Data Visualization Charts</em>
+</p>
 ---
 
 ## 📁 Project Structure
